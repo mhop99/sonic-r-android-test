@@ -46,7 +46,11 @@ jobs:
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
         run: |
           mkdir -p ~/.android
-          echo "$KEYSTORE_B64" | base64 -d > /tmp/sonicr.keystore
+          echo "Secret length (should be 3404): ${#KEYSTORE_B64}"
+          echo "Whitespace characters: $(printf '%s' "$KEYSTORE_B64" | tr -cd '[:space:]' | wc -c)"
+          echo "Other invalid characters: $(printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | tr -d 'A-Za-z0-9+/=' | wc -c)"
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > /tmp/sonicr.keystore
+          ls -l /tmp/sonicr.keystore
           rm -f ~/.android/debug.keystore
           keytool -importkeystore -srckeystore /tmp/sonicr.keystore -srcstorepass "$KEYSTORE_PASS" -srcalias sonicr -destkeystore ~/.android/debug.keystore -deststoretype PKCS12 -deststorepass android -destalias androiddebugkey -noprompt
           keytool -list -keystore ~/.android/debug.keystore -storepass android | grep -i -E "androiddebugkey|Entry"

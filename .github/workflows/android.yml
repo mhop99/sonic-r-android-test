@@ -40,21 +40,6 @@ jobs:
           ls SDL2_mixer
           test -f SDL2_mixer/CMakeLists.txt
 
-      - name: Set up fixed signing key
-        env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
-        run: |
-          mkdir -p ~/.android
-          echo "Secret length (should be 3404): ${#KEYSTORE_B64}"
-          echo "Whitespace characters: $(printf '%s' "$KEYSTORE_B64" | tr -cd '[:space:]' | wc -c)"
-          echo "Other invalid characters: $(printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | tr -d 'A-Za-z0-9+/=' | wc -c)"
-          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > /tmp/sonicr.keystore
-          ls -l /tmp/sonicr.keystore
-          rm -f ~/.android/debug.keystore
-          keytool -importkeystore -srckeystore /tmp/sonicr.keystore -srcstorepass "$KEYSTORE_PASS" -srcalias sonicr -destkeystore ~/.android/debug.keystore -deststoretype PKCS12 -deststorepass android -destalias androiddebugkey -noprompt
-          keytool -list -keystore ~/.android/debug.keystore -storepass android | grep -i -E "androiddebugkey|Entry"
-
       - name: Build APK
         run: |
           cd extracted/sonic-r-android-1.3.1/app
@@ -70,11 +55,6 @@ jobs:
           grep -n -A 25 "What went wrong" build.log | head -80 || true
           echo "=== CMAKE / NINJA ERRORS ==="
           grep -n -E "CMake Error|error:|FAILED:" build.log | head -40 || true
-
-      - name: Show signing certificate
-        run: |
-          APK=$(ls extracted/sonic-r-android-1.3.1/app/build/outputs/apk/debug/*.apk | head -n1)
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | grep -i "SHA-256"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
